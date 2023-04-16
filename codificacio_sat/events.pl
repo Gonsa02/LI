@@ -42,8 +42,8 @@ event(15,[  2  ,4],[  2,3  ]).
 %%%%%%% Some helpful definitions to make the code cleaner: ====================================
 
 event(E):-             event(E,_,_).
-eventModerators(E,M):- event(E,M,_).
-eventDays(E,D):-       event(E,_,D).
+eventModerators(E,LM):- event(E,LM,_).
+eventDays(E,LD):-       event(E,_,LD).
 day(D):-               numDays(N), between(1,N,D).
 moderator(M):-         numModerators(N), between(1,N,M).
 
@@ -52,16 +52,60 @@ moderator(M):-         numModerators(N), between(1,N,M).
 
 %%%%%%%  1. SAT Variables: ====================================================================
 
-satVariable( ed(E,D) ):-  ...   %% Complete this!
-
+satVariable( ed(E,D) ):- event(E), day(D).   %% Complete this!
+satVariable( md(M, D) ):- moderator(M), day(D).
+satVariable( em(E,M) ):- event(E), moderator(M).
 
 %%%%%%%  2. Clause generation for the SAT solver: =============================================
 
 writeClauses:-  
-    .... %% Complete this!  
+    %% Complete this!
+    eachEventExactlyOneOKDay,
+    impossibleEventsDay,
+    eachDayMaxEvents,
+    eachModeratorMaxDays,
+    eachEventModeratorOK,
+    impossibleEventModerator,
+    relacionar,
     true,!.
 writeClauses:- told, nl, write('writeClauses failed!'), nl,nl, halt.
 
+eachEventExactlyOneOKDay:- 
+    event(E), 
+    findall(ed(E,D), (eventDays(E,LD), member(D,LD)), Lits), 
+    exactly(1,Lits), fail.
+eachEventExactlyOneOKDay.
+
+impossibleEventsDay:- event(E), day(D), eventDays(E, LD), not(member(D, LD)), writeOneClause([-ed(E, D)]), fail.
+impossibleEventsDay.
+
+eachEventModeratorOK:- 
+    event(E), 
+    findall(em(E,M), (eventModerators(E, LM), member(M,LM)), Lits), 
+    exactly(1, Lits), fail.
+eachEventModeratorOK.
+
+impossibleEventModerator:- event(E), moderator(M), eventModerators(E, LM), not(member(M, LM)), writeOneClause([-em(E,M)]), fail.
+impossibleEventModerator.
+
+eachDayMaxEvents:-
+    day(D),
+    findall(ed(E,D), (eventDays(E, LD), member(D, LD)), Lits),
+    maxEventsPerDay(Max),
+    atMost(Max, Lits), fail.
+eachDayMaxEvents.
+
+eachModeratorMaxDays:-
+    moderator(M),
+    findall(md(M,D), day(D), Lits),
+    maxDaysPerModerator(Max),
+    atMost(Max, Lits), fail.
+eachModeratorMaxDays.
+
+relacionar:- 
+    event(E), moderator(M), day(D),
+    writeOneClause([-em(E,M), -ed(E,D), md(M,D)]), fail.
+relacionar.
 
 %%%%%%%  3. DisplaySol: show the solution. Here M contains the literals that are true in the model:
 
